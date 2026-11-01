@@ -13,6 +13,7 @@ import stat
 import struct
 import subprocess
 import tempfile
+from runtime_paths import path_within
 
 MAX_BYTES = 64 * 1024 * 1024
 NATIVE = Path(__file__).resolve().with_name('image_native')
@@ -137,7 +138,7 @@ def decode_bytes(data, aes_key=None, xor_key=None):
     raise ImageError('unsupported_image_encoding')
 
 def within(path, roots):
-    return any(path == root or root in path.parents for root in roots)
+    return any(path_within(root,path) for root in roots)
 
 def read_source(path, roots):
     resolved = path.expanduser().resolve()

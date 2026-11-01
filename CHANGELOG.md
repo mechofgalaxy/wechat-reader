@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.10.0rc4 — 2026-11-01
+
+- Check protected paths by device/inode identity as well as normalized spelling,
+  preventing case-alias bypasses on case-insensitive filesystems. Apply this to
+  text export, image output, voice output and selected configuration/access files.
+- Protect recognized db_storage roots above individual shards. Extend regression
+  tests to existing symlink targets and actual filesystem case behavior.
+
 ## 0.10.0rc3 — 2026-11-01
 
 - Reject export destinations that are symbolic links, including dangling links and

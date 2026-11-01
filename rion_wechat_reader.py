@@ -29,9 +29,10 @@ import tempfile
 import time
 from pathlib import Path
 from typing import Any, Iterable
+from runtime_paths import path_within as filesystem_path_within, same_path
 
 
-VERSION = "0.10.0rc3"
+VERSION = "0.10.0rc4"
 DEFAULT_CONFIG = Path("~/.config/rion-wechat-reader/config.json").expanduser()
 DEFAULT_NOTIFICATIONS_DB = Path(
     "~/Library/Group Containers/group.com.apple.usernoted/db2/db"
@@ -1735,7 +1736,13 @@ def export_chat(
     destination = path.parent.resolve() / path.name
     sources = [db.session_db, db.contact_db, *db.message_dbs, db.favorite_db, db.sns_db, db.hardlink_db]
     protected_roots = [*db.resource_roots, *(source.parent for source in sources if source)]
-    if any(path_within(root, destination) for root in protected_roots) or destination in {db.config_path.resolve(), db.keys_path.resolve()}:
+    for source in sources:
+        if source:
+            storage=next((parent for parent in source.parents if parent.name.casefold()=='db_storage'),None)
+            if storage:
+                protected_roots.append(storage)
+                if storage.parent.parent.name.casefold()=='xwechat_files':protected_roots.append(storage.parent)
+    if any(path_within(root, destination) for root in protected_roots) or any(same_path(destination, item) for item in (db.config_path,db.keys_path)):
         raise ReaderError("导出不能写入微信源目录或当前配置/访问材料", "output_inside_wechat_source")
     rows = timeline(db, chat, limit, offset, after, before)
     rows.sort(key=lambda row: (int(row.get("create_time") or 0), int(row.get("local_id") or 0)))
@@ -2324,7 +2331,7 @@ def secure_write_json(path: Path, value: dict[str, Any], force: bool = False) ->
 
 def path_within(root: Path, candidate: Path) -> bool:
     try:
-        return os.path.commonpath((str(root.resolve()), str(candidate.resolve()))) == str(root.resolve())
+        return filesystem_path_within(root, candidate)
     except (OSError, ValueError):
         return False
 

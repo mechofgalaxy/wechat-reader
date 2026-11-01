@@ -212,7 +212,7 @@ class ReaderContractTest(unittest.TestCase):
         payload = self.run_cli("version")
         self.assertEqual(payload["data"]["name"], "rion-wechat-cli")
         # Local patch identifier is intentional; all other upstream assertions are unchanged.
-        self.assertEqual(payload["data"]["version"], "0.10.0rc3")
+        self.assertEqual(payload["data"]["version"], "0.10.0rc4")
 
     def test_import_access_converts_explicit_bundle_without_exposing_keys(self):
         source = Path(self.temp.name) / "legacy-access.json"
@@ -921,6 +921,27 @@ class ReaderContractTest(unittest.TestCase):
                 result=self.run_with_config(self.config,'export','wxid_alice','--path',str(link),*flags,expected=1)
                 self.assertEqual(result['error']['code'],'output_symlink')
                 self.assertTrue(link.is_symlink());self.assertFalse(target.exists())
+            target.write_text('existing outside target')
+            result=self.run_with_config(self.config,'export','wxid_alice','--path',str(link),'--force',expected=1)
+            self.assertEqual(result['error']['code'],'output_symlink');self.assertTrue(link.is_symlink())
+            self.assertEqual(target.read_text(),'existing outside target');target.unlink()
+
+    def test_export_blocks_case_aliases_on_case_insensitive_filesystems(self):
+        alias=self.data_root.with_name(self.data_root.name.swapcase())
+        if not alias.exists() or not alias.samefile(self.data_root):self.skipTest('Case-sensitive test filesystem')
+        for original,target in ((self.session,alias/self.session.name.upper()),(self.config,self.config.with_name(self.config.name.upper()))):
+            before=original.read_bytes()
+            result=self.run_with_config(self.config,'export','wxid_alice','--path',str(target),'--force',expected=1)
+            self.assertEqual(result['error']['code'],'output_inside_wechat_source');self.assertEqual(original.read_bytes(),before)
+
+    def test_export_protects_db_storage_root_above_shards(self):
+        storage=Path(self.temp.name)/'db_storage';shard=storage/'message';shard.mkdir(parents=True)
+        import shutil
+        message=shard/'message.db';shutil.copy2(self.message,message)
+        config=json.loads(self.config.read_text());config['message_dbs']=[str(message)];self.config.write_text(json.dumps(config))
+        output=storage/'new.jsonl'
+        result=self.run_with_config(self.config,'export','wxid_alice','--path',str(output),expected=1)
+        self.assertEqual(result['error']['code'],'output_inside_wechat_source');self.assertFalse(output.exists())
 
     @unittest.skipIf(SQLCIPHER is None,'SQLCipher is not installed')
     def test_public_onboarding_uses_explicit_identity_and_ignores_old_environment(self):

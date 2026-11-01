@@ -49,6 +49,11 @@ class ImageUnitTest(unittest.TestCase):
         self.assertEqual(self.output.stat().st_mode&0o777,0o600)
         self.assertEqual(images.image_format(self.output.read_bytes()),'png')
         self.assertEqual(hashlib.sha256(self.input.read_bytes()).hexdigest(),before)
+    def test_output_case_alias_cannot_enter_source(self):
+        alias=self.source.with_name(self.source.name.upper())
+        if not alias.exists() or not alias.samefile(self.source):self.skipTest('Case-sensitive test filesystem')
+        output=alias/'case-output.png';result=self.process(output=output)
+        self.assertEqual(result['status'],'output_inside_wechat_source');self.assertFalse(output.exists())
     def test_xor_image_roundtrip_and_pixel_decode(self):
         original=png();self.input.write_bytes(bytes(v^0xa7 for v in original))
         result=self.process(output=self.output,expected_md5=hashlib.md5(original).hexdigest())

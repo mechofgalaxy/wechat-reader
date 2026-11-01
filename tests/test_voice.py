@@ -1,5 +1,5 @@
 """Synthetic-account tests: never open real WeChat databases."""
-import hashlib,importlib.util,json,shutil,sqlite3,struct,unittest,wave,os
+import hashlib,importlib.util,json,shutil,sqlite3,struct,unittest,wave,os,tempfile
 from pathlib import Path
 from unittest import mock
 import test_reader_upstream as fixtures
@@ -109,6 +109,13 @@ class VoiceTest(unittest.TestCase):
             r=v.read_voice(self.db,'wxid_alice',sid,reader.decode_message_content,reader.source_version);self.assertEqual(r['status'],'invalid_voice_server_id')
 
 class FormatTest(unittest.TestCase):
+    def test_output_case_alias_cannot_enter_source(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root=Path(tmp);account=root/'AccountMedia';account.mkdir();alias=root/'aCCOUNTmEDIA'
+            if not alias.exists() or not alias.samefile(account):self.skipTest('Case-sensitive test filesystem')
+            source=root/'fictional.wav';source.write_bytes(b'fictional');output=alias/'voice.wav'
+            with self.assertRaisesRegex(v.VoiceError,'voice_output_inside_wechat_source'):v.export_exclusive(source,output,account)
+            self.assertFalse(output.exists())
     def test_silk_framing_valid(self):self.assertGreater(v.validate_silk(SILK),1)
     def test_silk_truncation(self):
         with self.assertRaises(v.VoiceError):v.validate_silk(SILK[:-1])

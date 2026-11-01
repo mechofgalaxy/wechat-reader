@@ -70,6 +70,16 @@ class PortableTest(unittest.TestCase):
         with mock.patch.dict(os.environ,{'WECHAT_READER_HOME':str(self.root/'alternate')}):
             self.assertTrue(runtime_paths.model_path('turbo').is_relative_to((self.root/'alternate').resolve()))
             self.assertNotIn('snapshots',str(runtime_paths.model_path('turbo')))
+    def test_containment_uses_actual_filesystem_identity(self):
+        root=self.root/'SourceMedia';root.mkdir();variant=self.root/'sOURCEmEDIA'
+        if variant.exists():
+            self.assertTrue(root.samefile(variant))
+            self.assertTrue(runtime_paths.path_within(root,variant/'missing'/'new.jsonl'))
+        else:
+            variant.mkdir()
+            self.assertFalse(runtime_paths.path_within(root,variant/'new.jsonl'))
+        alias=self.root/'alias';alias.symlink_to(root,target_is_directory=True)
+        self.assertTrue(runtime_paths.path_within(root,alias/'new.jsonl'))
     def test_unknown_model_has_clear_error(self):
         r=self.cli('models','install','arbitrary');self.assertEqual(r.returncode,2)
     def test_media_worker_rejects_nonmedia(self):

@@ -169,7 +169,8 @@ def export_exclusive(source,dest,account):
     dest=dest.expanduser().absolute();parent=dest.parent.resolve()
     if dest.suffix.lower()!='.wav':raise VoiceError('voice_output_must_be_wav')
     if not parent.is_dir():raise VoiceError('voice_output_directory_missing')
-    if parent.is_relative_to(account):raise VoiceError('voice_output_inside_wechat_source')
+    from runtime_paths import path_within
+    if path_within(account,parent):raise VoiceError('voice_output_inside_wechat_source')
     with tempfile.TemporaryDirectory(prefix='.voice-export-',dir=parent) as temp:
         stage=Path(temp)/'audio.wav';stage.write_bytes(source.read_bytes());stage.chmod(0o600)
         try:os.link(stage,parent/dest.name)
