@@ -26,7 +26,7 @@ prefix=$(CDPATH='' cd -- "$prefix" && pwd)
 mkdir "$prefix/.install-lock" || { echo 'Another install is active; inspect .install-lock.' >&2; exit 2; }
 work=$(mktemp -d "$prefix/.install-XXXXXX")
 trap 'rm -rf "$work"; rmdir "$prefix/.install-lock"' EXIT HUP INT TERM
-release="$prefix/releases/0.10.0rc1-$flavor"
+release="$prefix/releases/0.10.0rc2-$flavor"
 [ ! -e "$release" ] || { echo "Release already exists: $release. Existing installation preserved." >&2; exit 2; }
 mkdir -p "$prefix/bin"
 if [ -e "$prefix/bin/wechat-reader" ]; then
@@ -42,7 +42,7 @@ tar -xzf "$work/uv.tar.gz" -C "$work"
 uv="$work/uv-$uv_target/uv"
 export UV_PYTHON_INSTALL_DIR="$prefix/python"
 export UV_CACHE_DIR="$prefix/cache/uv"
-"$uv" --no-config python install 3.12.16
+"$uv" --no-config python install --no-bin 3.12.16
 mkdir -p "$release/lib"
 "$uv" --no-config venv --python 3.12.16 --managed-python "$release/runtime"
 if [ "$flavor" = voice ]; then
@@ -63,7 +63,12 @@ if [ "$(uname -s)" = Darwin ]; then
   fi
   chmod 700 "$release/lib/image_native"
 fi
-"$release/runtime/bin/python" -E -s "$release/lib/reader_app.py" self-test
+if [ "$(uname -s)" = Darwin ]; then
+  "$release/runtime/bin/python" -E -s "$release/lib/reader_app.py" self-test --require-sqlcipher
+  "$release/runtime/bin/python" -E -s "$release/lib/reader_app.py" runtime-status --require-images
+else
+  "$release/runtime/bin/python" -E -s "$release/lib/reader_app.py" self-test
+fi
 "$release/runtime/bin/python" -E -s "$release/lib/reader_app.py" demo
 cat > "$work/launcher" <<EOF
 #!/bin/sh
@@ -72,7 +77,7 @@ set -eu
 umask 077
 app_root=\$(CDPATH='' cd -- "\$(dirname -- "\$0")/.." && pwd)
 export WECHAT_READER_HOME="\$app_root"
-exec "\$app_root/releases/0.10.0rc1-$flavor/runtime/bin/python" -E -s "\$app_root/releases/0.10.0rc1-$flavor/lib/reader_app.py" "\$@"
+exec "\$app_root/releases/0.10.0rc2-$flavor/runtime/bin/python" -E -s "\$app_root/releases/0.10.0rc2-$flavor/lib/reader_app.py" "\$@"
 EOF
 chmod 700 "$work/launcher"
 if [ -f "$prefix/bin/wechat-reader" ]; then cp "$prefix/bin/wechat-reader" "$release/previous-launcher"; fi

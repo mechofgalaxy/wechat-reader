@@ -1,5 +1,6 @@
 import hashlib
 import json
+import os
 import sqlite3
 import subprocess
 import sys
@@ -211,7 +212,7 @@ class ReaderContractTest(unittest.TestCase):
         payload = self.run_cli("version")
         self.assertEqual(payload["data"]["name"], "rion-wechat-cli")
         # Local patch identifier is intentional; all other upstream assertions are unchanged.
-        self.assertEqual(payload["data"]["version"], "0.10.0rc1")
+        self.assertEqual(payload["data"]["version"], "0.10.0rc2")
 
     def test_import_access_converts_explicit_bundle_without_exposing_keys(self):
         source = Path(self.temp.name) / "legacy-access.json"
@@ -892,6 +893,44 @@ class ReaderContractTest(unittest.TestCase):
             expected=1,
         )
         self.assertEqual(blocked["error"]["code"], "output_exists")
+
+    def test_export_strict_mode_and_alias_do_not_write(self):
+        for command in ('export','export_messages'):
+            target=Path(self.temp.name)/'strict-output.jsonl'
+            result=self.run_with_config(self.config,'--strict-read-only',command,'wxid_alice','--path',str(target),expected=1)
+            self.assertEqual(result['error']['code'],'strict_read_only_local_write')
+            self.assertFalse(target.exists())
+        self.assertFalse(self.run_cli('tool-schema','export')['data']['tool']['read_only'])
+
+    def test_export_refuses_source_and_profile_overwrite(self):
+        for target in (self.session,self.contact,self.config,self.keys):
+            before=target.read_bytes()
+            result=self.run_with_config(self.config,'export','wxid_alice','--path',str(target),'--force',expected=1)
+            self.assertEqual(result['error']['code'],'output_inside_wechat_source')
+            self.assertEqual(target.read_bytes(),before)
+        alias=Path(self.temp.name)/'linked-resources';alias.symlink_to(self.resource_root,target_is_directory=True)
+        target=alias/'new-export.jsonl'
+        result=self.run_with_config(self.config,'export','wxid_alice','--path',str(target),expected=1)
+        self.assertEqual(result['error']['code'],'output_inside_wechat_source');self.assertFalse(target.exists())
+
+    @unittest.skipIf(SQLCIPHER is None,'SQLCipher is not installed')
+    def test_public_onboarding_uses_explicit_identity_and_ignores_old_environment(self):
+        encrypted=Path(self.temp.name)/'encrypted-onboard';encrypted.mkdir()
+        key='44'*32;entries={}
+        for source in (self.session,self.contact,self.message):
+            self.encrypt_fixture(source,encrypted/source.name,key);entries[source.name]={'enc_key':key}
+        source=Path(self.temp.name)/'onboard-access.json';source.write_text(json.dumps(entries));source.chmod(0o600)
+        before={p:hashlib.sha256(p.read_bytes()).hexdigest() for p in (source,*encrypted.glob('*.db'))}
+        state=Path(self.temp.name)/'public-state';poison=Path(self.temp.name)/'unrelated.json';poison.write_text('invalid unrelated account')
+        env={**os.environ,'WECHAT_READER_HOME':str(state),'RION_WECHAT_READER_KEYS':str(poison)}
+        result=subprocess.run([sys.executable,str(ROOT/'reader_app.py'),'onboard','--name','fictional','--database-root',str(encrypted),'--access-file',str(source),'--self-username','wxid_me'],env=env,capture_output=True,text=True)
+        self.assertEqual(result.returncode,0,result.stdout+result.stderr)
+        config=state/'profiles/fictional/reader.json';self.assertEqual(json.loads(config.read_text())['self_username'],'wxid_me')
+        self.assertEqual(config.stat().st_mode&0o777,0o600);self.assertIn('"identity_needs_confirmation": false',result.stdout)
+        query=subprocess.run([sys.executable,str(ROOT/'reader_app.py'),'--profile','fictional','timeline','wxid_alice','--from-me'],env=env,capture_output=True,text=True)
+        self.assertEqual(query.returncode,0,query.stdout+query.stderr)
+        self.assertEqual([m['local_id'] for m in json.loads(query.stdout)['data']['messages']],[2])
+        self.assertEqual(before,{p:hashlib.sha256(p.read_bytes()).hexdigest() for p in before})
 
     def test_announcements_and_restricted_sql(self):
         announcement_payload = self.run_cli("announcements", "team@chatroom", "--limit", "10")

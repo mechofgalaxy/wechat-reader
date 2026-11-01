@@ -15,13 +15,19 @@ Without compatible materials, full reading remains unavailable; repeated install
 For scripted onboarding:
 
 ```sh
-wechat-reader onboard --name personal --database-root /authorized/db_storage --access-file /private/access.json
+wechat-reader onboard --name personal --database-root /authorized/db_storage --access-file /private/access.json --self-username YOUR_VERIFIED_ACCOUNT_USERNAME
 ```
 
 Protect the access file with user-only permissions before importing. Failed imports leave a
 private partial profile for inspection, not a ready account. Existing labels are never overwritten.
 Use `--profile personal doctor --pretty` to check the real account, then `freshness --inventory-only`.
 Do not assume a successful JSON response means all databases/resources are covered.
+`--self-username` explicitly selects your own account identity. If omitted, setup may infer
+it from messages and reports `identity_needs_confirmation: true`; check the reported value
+before relying on `from_me`, images or voice. Correct `self_username` in that private profile's
+`reader.json` if needed, then run doctor again. A local label such as `personal` is not your
+WeChat account username. Legacy `RION_WECHAT_READER_*` environment variables are ignored by
+the public launcher; they cannot override the selected profile or the fictional demo.
 
 ## Images
 
@@ -32,6 +38,8 @@ samples against existing disk statistics; it does not inspect processes or resta
 It saves nothing by default. An explicit `--save` creates a private profile-bound material file;
 existing material is not overwritten. This is a distinct, intentional local write.
 `--strict-read-only` blocks persistent setup/output writes.
+This includes exports and account setup/import commands. Exports are declared as local writes
+and cannot target configured database/resource directories or the selected configuration/access files.
 
 Missing resources remain missing: this tool does not download remote message attachments.
 PNG/JPEG/static WXGF validation does not establish support for every image format or animation.

@@ -1,5 +1,19 @@
 # Changelog
 
+## 0.10.0rc2 — 2026-11-01
+
+- Keep Python command shortcuts inside the application boundary: the installer now
+  passes `--no-bin` to uv, preventing creation of a versioned Python shortcut in
+  the user's general executable directory. rc1 could create that shortcut even
+  when a custom application prefix was selected.
+- Isolate demo/profile keys from legacy environment settings; keep unspecified keys beside
+  the selected configuration instead of reading a global legacy account.
+- Enforce strict read-only exports/setup and protect database/resource/configuration paths
+  from export writes; correct export tool metadata.
+- Add explicit onboarding account identity and mark inference as requiring confirmation.
+- Probe native OCR and SQLCipher during macOS installation, report quarantine without
+  changing security controls, disable model-download telemetry, and correct portable CLI/docs links.
+
 ## 0.10.0rc1 — 2026-11-01
 
 First portable preview of this maintained Reader derivative.

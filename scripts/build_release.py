@@ -10,7 +10,7 @@ import subprocess
 import tarfile
 from check_public import ROOT,files,main as check_public
 
-VERSION='0.10.0rc1'
+VERSION='0.10.0rc2'
 PREFIX=f'wechat-reader-{VERSION}'
 EPOCH=1793491200
 

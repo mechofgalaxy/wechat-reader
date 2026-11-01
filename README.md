@@ -3,7 +3,7 @@
 Local, read-only access to **your own authorized** WeChat data, with text search,
 account-bound images/OCR, voice decoding and optional local speech transcription.
 This is a maintained derivative of [Rion WeChat Reader](https://github.com/Rion-Wu-tech/wechat-intelligence-hub),
-not an official Tencent product. **Version: 0.10.0rc1. License: AGPL-3.0-only.**
+not an official Tencent product. **Version: 0.10.0rc2. License: AGPL-3.0-only.**
 
 **安装成功不等于已接入微信。** 本包不提供数据库密钥获取、注入、重签名或自动发消息。
 完整读取需要你自己的兼容微信数据库及已有授权访问材料。尚无这些材料时，先运行虚构数据 Demo。
@@ -11,15 +11,20 @@ not an official Tencent product. **Version: 0.10.0rc1. License: AGPL-3.0-only.**
 ## Download and install / 安装
 
 Download an archive and `SHA256SUMS` from [Releases](https://github.com/hysres/wechat-reader/releases).
-Apple Silicon Mac users should choose `wechat-reader-0.10.0rc1-macos-arm64.tar.gz`;
+Apple Silicon Mac users should choose `wechat-reader-0.10.0rc2-macos-arm64.tar.gz`;
 it includes the precompiled Apple OCR helper. The source archive contains the helper's full source.
 These are command-line archives, not notarized `.app` installers.
+Use the documented terminal extraction. The installer checks native image/OCR execution;
+if macOS quarantine is present, it reports `macos_security_review_required` and stops before
+switching launchers. It never removes quarantine or changes security controls. Review the
+software using macOS's normal security process, or build the helper from the included source.
+`runtime-status` distinguishes helper presence from a successful generated-image OCR probe.
 
 ```sh
 # Compare the archive checksum with SHA256SUMS before extracting.
-shasum -a 256 wechat-reader-0.10.0rc1-macos-arm64.tar.gz
-tar -xzf wechat-reader-0.10.0rc1-macos-arm64.tar.gz
-cd wechat-reader-0.10.0rc1
+shasum -a 256 wechat-reader-0.10.0rc2-macos-arm64.tar.gz
+tar -xzf wechat-reader-0.10.0rc2-macos-arm64.tar.gz
+cd wechat-reader-0.10.0rc2
 ./install.sh
 # To include local voice decoding / transcription dependencies instead:
 # ./install.sh --with-voice
@@ -94,6 +99,7 @@ Installing voice after core creates a separate environment and switches only thi
 managed launcher. Existing profiles, unrelated tools and installations are preserved.
 Reinstalling the same version/flavor is refused rather than overwritten.
 The preceding launcher is saved as `previous-launcher` inside the new release directory.
+Invoke the installed launcher directly; moving or symlinking it to another directory is unsupported.
 To roll back, inspect and restore that saved launcher to `bin/wechat-reader`.
 If an install fails, the previous launcher remains active; the new incomplete directory is
 left for inspection. Remove only that failed release directory before a deliberate retry.
@@ -113,7 +119,9 @@ python3 scripts/check_public.py
 ./wechat-reader demo
 ```
 
-Tests use fictional databases and generated media only. Apple integration tests are explicitly
+Tests use fictional databases and generated media only. Before running tests from a macOS
+release archive, copy `bin/macos-arm64/image_native` to the extracted source root.
+Source checkouts compile that helper using the command above. Apple integration tests are
 skipped on Linux; full ASR requires an installed model and `WECHAT_READER_TEST_ASR=1`.
 CI has no account credentials and cannot certify live WeChat access.
 See [CHANGELOG](CHANGELOG.md), [provenance](docs/PROVENANCE.md), [security](SECURITY.md),

@@ -21,6 +21,7 @@ import platform
 import plistlib
 import re
 import shutil
+import shlex
 import sqlite3
 import stat
 import sys
@@ -30,7 +31,7 @@ from pathlib import Path
 from typing import Any, Iterable
 
 
-VERSION = "0.10.0rc1"
+VERSION = "0.10.0rc2"
 DEFAULT_CONFIG = Path("~/.config/rion-wechat-reader/config.json").expanduser()
 DEFAULT_NOTIFICATIONS_DB = Path(
     "~/Library/Group Containers/group.com.apple.usernoted/db2/db"
@@ -254,12 +255,7 @@ class DatabaseSet:
     def __init__(self, config_path: Path):
         self.config_path = config_path
         self.config = load_json(config_path)
-        self.keys_path = Path(
-            os.environ.get(
-                "RION_WECHAT_READER_KEYS",
-                str(self.config.get("keys_file") or "~/.config/rion-wechat-reader/keys.json"),
-            )
-        ).expanduser()
+        self.keys_path = Path(str(self.config.get("keys_file") or config_path.parent / "keys.json")).expanduser()
         self.keys = load_json(self.keys_path)
         self.session_db = self._path("session_db")
         self.contact_db = self._path("contact_db")
@@ -1733,6 +1729,11 @@ def export_chat(
     base_kind: int | None,
     force: bool,
 ) -> dict[str, Any]:
+    destination = path.expanduser().resolve()
+    sources = [db.session_db, db.contact_db, *db.message_dbs, db.favorite_db, db.sns_db, db.hardlink_db]
+    protected_roots = [*db.resource_roots, *(source.parent for source in sources if source)]
+    if any(path_within(root, destination) for root in protected_roots) or destination in {db.config_path.resolve(), db.keys_path.resolve()}:
+        raise ReaderError("导出不能写入微信源目录或当前配置/访问材料", "output_inside_wechat_source")
     rows = timeline(db, chat, limit, offset, after, before)
     rows.sort(key=lambda row: (int(row.get("create_time") or 0), int(row.get("local_id") or 0)))
     if keyword:
@@ -1764,7 +1765,7 @@ def tools_catalog() -> list[dict[str, Any]]:
             "name": name.replace("-", "_"),
             "command": name,
             "aliases": spec["aliases"],
-            "read_only": name not in {"image", "image-setup", "voice"},
+            "read_only": name not in {"image", "image-setup", "voice", "export"},
             "wechat_read_only": True,
             "inputSchema": {
                 "type": "object",
@@ -1793,7 +1794,7 @@ def tool_schema(name: str) -> dict[str, Any]:
         "command": {"name": canonical, "command": canonical, "aliases": spec["aliases"]},
         "tool": {
             "name": canonical.replace("-", "_"),
-            "read_only": canonical not in {"image", "image-setup", "voice"},
+            "read_only": canonical not in {"image", "image-setup", "voice", "export"},
             "wechat_read_only": True,
             "inputSchema": {
                 "type": "object",
@@ -2092,10 +2093,7 @@ def access_plan(
 
     try:
         config = load_json(config_path)
-        selected_keys = keys_file or Path(os.environ.get(
-            "RION_WECHAT_READER_KEYS",
-            str(config.get("keys_file") or "~/.config/rion-wechat-reader/keys.json"),
-        )).expanduser()
+        selected_keys = keys_file or Path(str(config.get("keys_file") or config_path.parent / "keys.json")).expanduser()
         if selected_keys.exists() and not safe_mode(selected_keys):
             return finish("unsafe_key_permissions", "访问材料权限过宽，尚未读取其内容。", "在本机收紧该文件权限至0600后再检查；不要上传文件。")
         try:
@@ -2238,6 +2236,9 @@ def setup_cli(
             db = DatabaseSet(config_path)
             inferred_self = True
     initialized["self_username_inferred"] = inferred_self
+    initialized["self_username"] = db.self_username
+    initialized["self_username_source"] = "explicit" if self_username else "message_inference" if inferred_self else "unavailable"
+    initialized["identity_needs_confirmation"] = not bool(self_username)
     initialized["resource_root_count"] = len(inferred_roots)
     return {"setup": initialized, "doctor": doctor(db), "discovery": {"scanned_file_count": discovery["scanned_file_count"]}}
 
@@ -2463,7 +2464,7 @@ def import_access_bundle(
         "missing_database_count": missing_file_count,
         "keys_file_permissions_safe": safe_mode(keys_file),
         "verification": verification,
-        "next_command": "rion-wechat-cli setup --keys-file <private-keys-file> --pretty",
+        "next_command": "wechat-reader onboard --help",
     }
 
 
@@ -2517,7 +2518,7 @@ def initialize_config(
         "config_path": str(config_path),
         "keys_file": str(keys_file),
         "keys_file_permissions_safe": safe_mode(keys_file),
-        "next_command": f"rion-wechat-cli --config {config_path} --pretty doctor",
+        "next_command": f"wechat-reader --config {shlex.quote(str(config_path))} doctor --pretty",
     }
 
 
@@ -2786,9 +2787,9 @@ def doctor(db: DatabaseSet) -> dict[str, Any]:
         "status": current,
         "diagnostics": diagnostics,
         "next_actions": [
-            "运行 discover --root <你有权使用的数据库目录> 查找明文候选数据库。",
-            "使用 init 明确写入数据库路径；密钥只保存在本机 keys.json。",
-            "doctor 显示 ready 后再运行 sessions、timeline 和 search。",
+            "新账号运行 wechat-reader onboard；明确选择授权数据库目录、访问材料与自己的账号身份。",
+            f"检查当前配置：wechat-reader --config {shlex.quote(str(db.config_path))} doctor --pretty。",
+            "doctor 显示 ready 且身份正确后，在同一 --profile/--config 下运行 sessions、timeline 和 search。",
         ] if not state["live_database_read_ok"] else [],
     }
 
@@ -3267,6 +3268,8 @@ def main(argv: list[str] | None = None) -> int:
     args.strict_read_only = strict_anywhere
     command = COMMAND_ALIASES.get(args.command, args.command)
     try:
+        if args.strict_read_only and command in {"export", "setup", "init", "import-access"}:
+            raise ReaderError("严格只读模式不允许导出或写入账号配置/访问材料", "strict_read_only_local_write")
         if command == "version":
             emit(command, {"name": "rion-wechat-cli", "version": VERSION}, args.pretty)
         elif command == "tools":

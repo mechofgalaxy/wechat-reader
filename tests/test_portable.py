@@ -26,6 +26,29 @@ class PortableTest(unittest.TestCase):
         r=self.cli('demo');self.assertEqual(r.returncode,0,r.stderr)
         d=json.loads(r.stdout);self.assertEqual(d['data']['messages'][0]['text'],'This is a fictional demo message.')
         self.assertFalse((self.root/'state with spaces').exists())
+    def test_demo_ignores_legacy_account_environment(self):
+        poison=self.root/'unrelated-account-keys.json';poison.write_text('invalid unrelated private material')
+        self.env.update(RION_WECHAT_READER_KEYS=str(poison),RION_WECHAT_READER_CONFIG=str(poison))
+        r=self.cli('demo');self.assertEqual(r.returncode,0,r.stderr+r.stdout)
+        self.assertEqual(json.loads(r.stdout)['data']['messages'][0]['text'],'This is a fictional demo message.')
+        self.assertEqual(poison.read_text(),'invalid unrelated private material')
+    def test_config_without_keys_stays_with_its_own_directory(self):
+        config=self.root/'reader.json';config.write_text('{}')
+        own_keys=self.root/'keys.json';own_keys.write_text('{"keys":{}}')
+        with mock.patch.dict(os.environ,{'RION_WECHAT_READER_KEYS':str(self.root/'other.json')}):
+            db=reader_app.reader.DatabaseSet(config)
+        self.assertEqual(db.keys_path,own_keys);self.assertEqual(db.keys,{'keys':{}})
+    def test_helper_launch_failure_is_not_ready(self):
+        helper=self.root/'image_native';helper.write_text('fixture')
+        with mock.patch.object(reader_app.platform,'system',return_value='Darwin'),mock.patch.object(reader_app.subprocess,'run',side_effect=[mock.Mock(returncode=0,stdout=b''),mock.Mock(returncode=-9,stdout=b'')]):
+            state=reader_app.image_runtime_status(helper)
+        self.assertTrue(state['present']);self.assertTrue(state['execution_tested']);self.assertFalse(state['ready'])
+    def test_quarantined_helper_is_reported_without_execution(self):
+        helper=self.root/'image_native';helper.write_text('fixture')
+        with mock.patch.object(reader_app.platform,'system',return_value='Darwin'),mock.patch.object(reader_app.subprocess,'run',return_value=mock.Mock(returncode=0,stdout=b'com.apple.quarantine\n')) as run:
+            state=reader_app.image_runtime_status(helper)
+        run.assert_called_once();self.assertEqual(run.call_args.args[0][0],'/usr/bin/xattr')
+        self.assertEqual(state['status'],'macos_security_review_required');self.assertFalse(state['ready'])
     def test_runtime_does_not_claim_account_access(self):
         r=self.cli('runtime-status');self.assertEqual(r.returncode,0,r.stderr)
         d=json.loads(r.stdout);self.assertEqual(d['account_access'],'not_checked');self.assertFalse(d['network_used'])

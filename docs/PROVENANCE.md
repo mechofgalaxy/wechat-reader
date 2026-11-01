@@ -20,6 +20,9 @@ by this project. uv: Astral (MIT/Apache-2.0); CPython: PSF; SQLCipher/sqlcipher3
 licenses; Zstandard: BSD/GPL options; PyAV: BSD, with linked FFmpeg components under their respective
 licenses; Pillow: HPND; MLX/MLX-Whisper: MIT; pilk and speech model/tokenizer dependencies: their
 distribution notices. Exact selected distributions/hashes are in requirements-*.lock.
+The `httpx2` / `httpcore2` names are intentional: the pinned
+[Hugging Face Hub 2.4.0 dependency declaration](https://github.com/huggingface/huggingface_hub/blob/v2.4.0/setup.py)
+requires HTTPX2, whose [upstream project is maintained by Pydantic](https://github.com/pydantic/httpx2).
 Speech model repositories are identified with immutable revisions in runtime_paths.py.
 
 No third-party proprietary WeChat binary or original historical WeChat CLI binary is included.
