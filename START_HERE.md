@@ -19,7 +19,7 @@ Intel Mac, Windows, and Linux first acquisition are not supported in this releas
    Confirm you are executing on the user's own Mac. Check `uname -s`, `uname -m`,
    and `sw_vers -productVersion`. Do not infer local access from a GitHub connector.
 2. Download `wechat-reader-0.11.0rc1-macos-arm64.tar.gz` and `SHA256SUMS` from the
-   [fixed release](https://github.com/mechatlarge/wechat-reader/releases/tag/v0.11.0rc1).
+   [fixed release](https://github.com/mechofgalaxy/wechat-reader/releases/tag/v0.11.0rc1).
    Check the archive's SHA256 before extracting into a new directory. Do not run
    a moving remote shell script or a helper from an unrelated directory.
 3. Run `./install.sh` from the extracted directory as the ordinary user. It installs

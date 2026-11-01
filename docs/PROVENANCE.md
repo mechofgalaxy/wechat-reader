@@ -2,7 +2,7 @@
 
 The core reader and original contract tests derive from Rion-Wu-tech/wechat-intelligence-hub,
 base revision `3afe33e0742ef4e92b4babe399bf471fdcd86a7b`, under AGPL-3.0-only.
-Original attribution and LICENSE are retained. This maintained derivative is published by mechatlarge.
+Original attribution and LICENSE are retained. This maintained derivative is published by mechofgalaxy.
 It is not endorsed by Rion Wu, Tencent or WeChat.
 
 The October 2026 extensions add snapshot freshness, image decoding/OCR, disk-only image

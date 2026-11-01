@@ -1,6 +1,6 @@
 # Maintained derivative notice
 
-WeChat Reader 0.11.0rc1 is a maintained derivative published by mechatlarge.
+WeChat Reader 0.11.0rc1 is a maintained derivative published by mechofgalaxy.
 Modifications: Copyright (C) 2026 hysres contributors.
 The complete derivative remains AGPL-3.0-only. Original upstream attribution follows.
 Upstream branding identifies provenance; this distribution is not an upstream release.

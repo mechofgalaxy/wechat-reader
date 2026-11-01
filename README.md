@@ -23,7 +23,7 @@ one-click compatibility or confuse mocked acquisition with a real WeChat test.
 
 ## Download and install / 安装
 
-Download an archive and `SHA256SUMS` from [Releases](https://github.com/mechatlarge/wechat-reader/releases).
+Download an archive and `SHA256SUMS` from [Releases](https://github.com/mechofgalaxy/wechat-reader/releases).
 Apple Silicon Mac users should choose `wechat-reader-0.11.0rc1-macos-arm64.tar.gz`;
 it includes the precompiled Apple OCR helper. The source archive contains the helper's full source.
 These are command-line archives, not notarized `.app` installers.
