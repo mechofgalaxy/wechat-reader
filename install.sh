@@ -26,7 +26,7 @@ prefix=$(CDPATH='' cd -- "$prefix" && pwd)
 mkdir "$prefix/.install-lock" || { echo 'Another install is active; inspect .install-lock.' >&2; exit 2; }
 work=$(mktemp -d "$prefix/.install-XXXXXX")
 trap 'rm -rf "$work"; rmdir "$prefix/.install-lock"' EXIT HUP INT TERM
-release="$prefix/releases/0.10.0rc2-$flavor"
+release="$prefix/releases/0.10.0rc3-$flavor"
 [ ! -e "$release" ] || { echo "Release already exists: $release. Existing installation preserved." >&2; exit 2; }
 mkdir -p "$prefix/bin"
 if [ -e "$prefix/bin/wechat-reader" ]; then
@@ -77,7 +77,7 @@ set -eu
 umask 077
 app_root=\$(CDPATH='' cd -- "\$(dirname -- "\$0")/.." && pwd)
 export WECHAT_READER_HOME="\$app_root"
-exec "\$app_root/releases/0.10.0rc2-$flavor/runtime/bin/python" -E -s "\$app_root/releases/0.10.0rc2-$flavor/lib/reader_app.py" "\$@"
+exec "\$app_root/releases/0.10.0rc3-$flavor/runtime/bin/python" -E -s "\$app_root/releases/0.10.0rc3-$flavor/lib/reader_app.py" "\$@"
 EOF
 chmod 700 "$work/launcher"
 if [ -f "$prefix/bin/wechat-reader" ]; then cp "$prefix/bin/wechat-reader" "$release/previous-launcher"; fi

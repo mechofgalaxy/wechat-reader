@@ -3,7 +3,7 @@
 Local, read-only access to **your own authorized** WeChat data, with text search,
 account-bound images/OCR, voice decoding and optional local speech transcription.
 This is a maintained derivative of [Rion WeChat Reader](https://github.com/Rion-Wu-tech/wechat-intelligence-hub),
-not an official Tencent product. **Version: 0.10.0rc2. License: AGPL-3.0-only.**
+not an official Tencent product. **Version: 0.10.0rc3. License: AGPL-3.0-only.**
 
 **安装成功不等于已接入微信。** 本包不提供数据库密钥获取、注入、重签名或自动发消息。
 完整读取需要你自己的兼容微信数据库及已有授权访问材料。尚无这些材料时，先运行虚构数据 Demo。
@@ -11,7 +11,7 @@ not an official Tencent product. **Version: 0.10.0rc2. License: AGPL-3.0-only.**
 ## Download and install / 安装
 
 Download an archive and `SHA256SUMS` from [Releases](https://github.com/hysres/wechat-reader/releases).
-Apple Silicon Mac users should choose `wechat-reader-0.10.0rc2-macos-arm64.tar.gz`;
+Apple Silicon Mac users should choose `wechat-reader-0.10.0rc3-macos-arm64.tar.gz`;
 it includes the precompiled Apple OCR helper. The source archive contains the helper's full source.
 These are command-line archives, not notarized `.app` installers.
 Use the documented terminal extraction. The installer checks native image/OCR execution;
@@ -22,9 +22,9 @@ software using macOS's normal security process, or build the helper from the inc
 
 ```sh
 # Compare the archive checksum with SHA256SUMS before extracting.
-shasum -a 256 wechat-reader-0.10.0rc2-macos-arm64.tar.gz
-tar -xzf wechat-reader-0.10.0rc2-macos-arm64.tar.gz
-cd wechat-reader-0.10.0rc2
+shasum -a 256 wechat-reader-0.10.0rc3-macos-arm64.tar.gz
+tar -xzf wechat-reader-0.10.0rc3-macos-arm64.tar.gz
+cd wechat-reader-0.10.0rc3
 ./install.sh
 # To include local voice decoding / transcription dependencies instead:
 # ./install.sh --with-voice

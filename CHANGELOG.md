@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.10.0rc3 — 2026-11-01
+
+- Reject export destinations that are symbolic links, including dangling links and
+  `--force`. Check the actual destination parent so an outward-pointing link cannot
+  cause a write inside a protected WeChat resource directory.
+
 ## 0.10.0rc2 — 2026-11-01
 
 - Keep Python command shortcuts inside the application boundary: the installer now

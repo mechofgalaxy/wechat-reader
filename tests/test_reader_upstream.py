@@ -212,7 +212,7 @@ class ReaderContractTest(unittest.TestCase):
         payload = self.run_cli("version")
         self.assertEqual(payload["data"]["name"], "rion-wechat-cli")
         # Local patch identifier is intentional; all other upstream assertions are unchanged.
-        self.assertEqual(payload["data"]["version"], "0.10.0rc2")
+        self.assertEqual(payload["data"]["version"], "0.10.0rc3")
 
     def test_import_access_converts_explicit_bundle_without_exposing_keys(self):
         source = Path(self.temp.name) / "legacy-access.json"
@@ -912,6 +912,15 @@ class ReaderContractTest(unittest.TestCase):
         target=alias/'new-export.jsonl'
         result=self.run_with_config(self.config,'export','wxid_alice','--path',str(target),expected=1)
         self.assertEqual(result['error']['code'],'output_inside_wechat_source');self.assertFalse(target.exists())
+
+    def test_export_never_replaces_leaf_symlinks(self):
+        target=Path(self.temp.name)/'outside-output.jsonl'
+        for folder in (self.resource_root,Path(self.temp.name)):
+            link=folder/'export-link';link.symlink_to(target)
+            for flags in ([],['--force']):
+                result=self.run_with_config(self.config,'export','wxid_alice','--path',str(link),*flags,expected=1)
+                self.assertEqual(result['error']['code'],'output_symlink')
+                self.assertTrue(link.is_symlink());self.assertFalse(target.exists())
 
     @unittest.skipIf(SQLCIPHER is None,'SQLCipher is not installed')
     def test_public_onboarding_uses_explicit_identity_and_ignores_old_environment(self):

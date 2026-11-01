@@ -31,7 +31,7 @@ from pathlib import Path
 from typing import Any, Iterable
 
 
-VERSION = "0.10.0rc2"
+VERSION = "0.10.0rc3"
 DEFAULT_CONFIG = Path("~/.config/rion-wechat-reader/config.json").expanduser()
 DEFAULT_NOTIFICATIONS_DB = Path(
     "~/Library/Group Containers/group.com.apple.usernoted/db2/db"
@@ -1729,7 +1729,10 @@ def export_chat(
     base_kind: int | None,
     force: bool,
 ) -> dict[str, Any]:
-    destination = path.expanduser().resolve()
+    path = path.expanduser().absolute()
+    if path.is_symlink():
+        raise ReaderError("导出目标不能是符号链接", "output_symlink")
+    destination = path.parent.resolve() / path.name
     sources = [db.session_db, db.contact_db, *db.message_dbs, db.favorite_db, db.sns_db, db.hardlink_db]
     protected_roots = [*db.resource_roots, *(source.parent for source in sources if source)]
     if any(path_within(root, destination) for root in protected_roots) or destination in {db.config_path.resolve(), db.keys_path.resolve()}:
