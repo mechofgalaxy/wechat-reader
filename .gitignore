@@ -1,0 +1,16 @@
+__pycache__/
+*.py[cod]
+.venv/
+image_native
+bin/
+dist/
+*.db
+*.db-wal
+*.db-shm
+*.log
+profiles/
+models/
+*.local.json
+reader.json
+keys.json
+*.image-access.json
