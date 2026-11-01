@@ -128,11 +128,14 @@ def main():
         if name.startswith('RION_WECHAT_READER_'):os.environ.pop(name)
     args=sys.argv[1:]
     if not args or args==['--help']:
-        print('WeChat Reader Preview\n\n  runtime-status       Check installed capabilities (no account read)\n  demo                 Read a fictional temporary database\n  onboard              Connect your own authorized account\n  models install NAME  Download a pinned speech model (turbo / large-v3)\n  --profile NAME ...   Run a reader command with that account\n  --config PATH ...    Use an explicit existing account configuration\n  self-test / version / tools / tool-schema / --reader-help\n\nSee README.md for platform and access limitations.');return 0
+        print('WeChat Reader Preview\n\n  runtime-status       Check installed capabilities (no account read)\n  demo                 Read a fictional temporary database\n  connect              Guided first connection for any local agent\n  onboard              Import an explicit existing access file\n  models install NAME  Download a pinned speech model (turbo / large-v3)\n  --profile NAME ...   Run a reader command with that account\n  --config PATH ...    Use an explicit existing account configuration\n  self-test / version / tools / tool-schema / --reader-help\n\nSee README.md for platform and access limitations.');return 0
     if args in (['runtime-status'],['runtime-status','--require-images']):
         data=runtime_status();output(data)
         return 1 if '--require-images' in args and not data['image_ocr'] else 0
     if args==['demo']:return demo()
+    if args[0]=='connect':
+        import first_run
+        return first_run.main(args[1:])
     if args[0]=='onboard':return onboard(args[1:])
     if args[:2]==['models','install']:return install_model(args[2:])
     if args==['--reader-help']:return run_core(['--help'])

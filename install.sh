@@ -26,7 +26,7 @@ prefix=$(CDPATH='' cd -- "$prefix" && pwd)
 mkdir "$prefix/.install-lock" || { echo 'Another install is active; inspect .install-lock.' >&2; exit 2; }
 work=$(mktemp -d "$prefix/.install-XXXXXX")
 trap 'rm -rf "$work"; rmdir "$prefix/.install-lock"' EXIT HUP INT TERM
-release="$prefix/releases/0.10.0rc4-$flavor"
+release="$prefix/releases/0.11.0rc1-$flavor"
 [ ! -e "$release" ] || { echo "Release already exists: $release. Existing installation preserved." >&2; exit 2; }
 mkdir -p "$prefix/bin"
 if [ -e "$prefix/bin/wechat-reader" ]; then
@@ -51,7 +51,7 @@ if [ "$flavor" = voice ]; then
 else
   "$uv" --no-config pip sync --python "$release/runtime/bin/python" --require-hashes --only-binary :all: "$source_dir/requirements-core.lock"
 fi
-for file in rion_wechat_reader.py reader_app.py runtime_paths.py wechat_voice.py voice_worker.py wechat_images.py media_worker.py image_native.swift; do
+for file in rion_wechat_reader.py reader_app.py first_run.py rion_wechat_access.py runtime_paths.py wechat_voice.py voice_worker.py wechat_images.py media_worker.py image_native.swift; do
   cp "$source_dir/$file" "$release/lib/$file"
 done
 if [ "$(uname -s)" = Darwin ]; then
@@ -62,6 +62,11 @@ if [ "$(uname -s)" = Darwin ]; then
     swiftc -O "$release/lib/image_native.swift" -o "$release/lib/image_native"
   fi
   chmod 700 "$release/lib/image_native"
+  if [ -f "$source_dir/bin/macos-arm64/wxkey" ]; then
+    cp "$source_dir/bin/macos-arm64/wxkey" "$release/lib/wxkey"
+    cp "$source_dir/access-provider.json" "$release/lib/access-provider.json"
+    chmod 700 "$release/lib/wxkey"
+  fi
 fi
 if [ "$(uname -s)" = Darwin ]; then
   "$release/runtime/bin/python" -E -s "$release/lib/reader_app.py" self-test --require-sqlcipher
@@ -69,6 +74,10 @@ if [ "$(uname -s)" = Darwin ]; then
 else
   "$release/runtime/bin/python" -E -s "$release/lib/reader_app.py" self-test
 fi
+mkdir -p "$release/guide/skills/wechat-reader" "$release/guide/docs"
+cp "$source_dir/START_HERE.md" "$source_dir/AGENTS.md" "$source_dir/SECURITY.md" "$release/guide/"
+cp "$source_dir/docs/ACCOUNT-ACCESS.md" "$release/guide/docs/"
+cp "$source_dir/skills/wechat-reader/SKILL.md" "$release/guide/skills/wechat-reader/"
 "$release/runtime/bin/python" -E -s "$release/lib/reader_app.py" demo
 cat > "$work/launcher" <<EOF
 #!/bin/sh
@@ -77,12 +86,12 @@ set -eu
 umask 077
 app_root=\$(CDPATH='' cd -- "\$(dirname -- "\$0")/.." && pwd)
 export WECHAT_READER_HOME="\$app_root"
-exec "\$app_root/releases/0.10.0rc4-$flavor/runtime/bin/python" -E -s "\$app_root/releases/0.10.0rc4-$flavor/lib/reader_app.py" "\$@"
+exec "\$app_root/releases/0.11.0rc1-$flavor/runtime/bin/python" -E -s "\$app_root/releases/0.11.0rc1-$flavor/lib/reader_app.py" "\$@"
 EOF
 chmod 700 "$work/launcher"
 if [ -f "$prefix/bin/wechat-reader" ]; then cp "$prefix/bin/wechat-reader" "$release/previous-launcher"; fi
 mv "$work/launcher" "$prefix/bin/wechat-reader"
 echo "Installed: $prefix/bin/wechat-reader"
 echo "Next: \"$prefix/bin/wechat-reader\" runtime-status"
-echo "Then: \"$prefix/bin/wechat-reader\" onboard"
+echo "Then: \"$prefix/bin/wechat-reader\" connect --discover"
 echo 'Installation does not establish account access. Existing profiles and speech models are preserved.'

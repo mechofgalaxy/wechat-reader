@@ -32,7 +32,7 @@ from typing import Any, Iterable
 from runtime_paths import path_within as filesystem_path_within, same_path
 
 
-VERSION = "0.10.0rc4"
+VERSION = "0.11.0rc1"
 DEFAULT_CONFIG = Path("~/.config/rion-wechat-reader/config.json").expanduser()
 DEFAULT_NOTIFICATIONS_DB = Path(
     "~/Library/Group Containers/group.com.apple.usernoted/db2/db"
@@ -2354,7 +2354,7 @@ def import_access_bundle(
         loaded = json.loads(source.read_text(encoding="utf-8"))
     except (OSError, json.JSONDecodeError) as exc:
         raise ReaderError("授权材料不是有效 JSON", "invalid_access_bundle") from exc
-    raw_entries = loaded.get("keys", loaded) if isinstance(loaded, dict) else None
+    raw_entries = loaded.get("salt_keys", loaded.get("keys", loaded)) if isinstance(loaded, dict) else None
     if not isinstance(raw_entries, dict):
         raise ReaderError("授权材料必须是路径到 key 信息的对象", "invalid_access_bundle")
 
@@ -2362,9 +2362,9 @@ def import_access_bundle(
         schema_version = int(loaded.get("schema_version") or 0) if isinstance(loaded, dict) else 0
     except (TypeError, ValueError):
         schema_version = 0
-    schema2_salt_map = schema_version >= 2 and isinstance(loaded, dict) and isinstance(loaded.get("keys"), dict)
+    schema2_salt_map = isinstance(loaded, dict) and (isinstance(loaded.get("salt_keys"), dict) or (schema_version >= 2 and isinstance(loaded.get("keys"), dict)))
     if database_root is None:
-        bundled_root = loaded.get("db_root") if schema2_salt_map and isinstance(loaded, dict) else None
+        bundled_root = (loaded.get("db_root") or loaded.get("database_root")) if schema2_salt_map else None
         if not bundled_root:
             raise ReaderError(
                 "路径型授权材料需要显式提供 --database-root",
@@ -2405,8 +2405,11 @@ def import_access_bundle(
             if not is_hex(name, {32}):
                 raise ReaderError("schema-2 授权材料包含无效数据库 salt", "invalid_access_bundle")
             raw_key = str(spec.get("key") or "").strip()
-            if not is_hex(raw_key, {64}):
-                raise ReaderError("schema-2 enc_key 必须是 64 位十六进制", "invalid_key")
+            if not is_hex(raw_key, {64, 96}):
+                raise ReaderError("salt entry key must be 64 or 96 hex characters", "invalid_key")
+            if len(raw_key) == 96 and raw_key[64:].casefold() != name.casefold():
+                raise ReaderError("salt mismatch", "key_salt_mismatch")
+            raw_key = raw_key[:64]
             imported_salts[name.casefold()] = DatabaseSet.validated_key_spec(
                 {**spec, "key": raw_key + name.casefold()},
                 "schema-2 entry",

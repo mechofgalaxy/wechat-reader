@@ -4,12 +4,41 @@ The installer prepares software. `runtime-status` checks software without readin
 `demo` generates a fictional database, queries it, verifies unchanged source bytes and deletes it.
 No account, notification database or personal file is needed for these checks.
 
-## First connection
+## Guided first connection
+
+Use the [agent-neutral guide](../START_HERE.md). `wechat-reader connect --discover`
+lists bounded local account directories without reading chats. Select one account
+explicitly. `connect --name LABEL --database-root PATH` diagnoses first; `--apply`
+imports existing compatible materials. `--request-access` requests native human
+consent and administrator authorization for the bundled experimental macOS helper.
+
+The helper is a fixed modified wxkey build, not an arbitrary download. It can quit
+and restart WeChat and locally sign a separate copy. It cannot store/read an admin
+password, re-sign the original app, or silently elevate itself. Process stopping
+verifies the selected user and exact executable instead of a global killall. SIP
+and quarantine are not modified. Output is reduced to fixed diagnostic signals;
+raw acquisition logs and keys are not sent to the agent. No background refresh is
+installed. Complete modified source, licenses, build commands and hashes accompany
+the release. This is not proof of fresh-machine compatibility.
+
+Acquisition materials are saved locally to `~/.config/wxcli/config.json` (existing
+files are never overwritten), then validated into a separate named Reader profile.
+A shared per-user recovery lock in `~/.local/share/wechat-reader-access/access-runs`
+prevents repeated acquisition. `connect --name LABEL --status` returns safe fields.
+After the human confirms official WeChat is usable and the attempt has ended,
+`connect --finish-recovery --confirm-wechat-ready --confirm-no-acquisition` checks
+processes and clears only that recovery lock. Never clear it to force a retry.
+
+Success requires real local database validation, user-scoped content verification,
+and post-run recovery confirmation. Unknown account identity, missing shards,
+missing permissions and unsupported versions remain visible; no automatic downgrade.
+
+## Existing access-file import
 
 Run `wechat-reader onboard`. Select a new local profile label and provide your own
 `db_storage` directory and an existing access-material file. The access format is documented
 in [Access bundle compatibility](access-bundle-compatibility.md).
-No process-memory access, signing changes, app restarts or key-acquisition providers are included.
+The legacy `onboard` import command itself never accesses processes or restarts apps; optional acquisition belongs only to `connect --request-access`.
 Without compatible materials, full reading remains unavailable; repeated installation does not fix it.
 
 For scripted onboarding:

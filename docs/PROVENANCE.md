@@ -2,7 +2,7 @@
 
 The core reader and original contract tests derive from Rion-Wu-tech/wechat-intelligence-hub,
 base revision `3afe33e0742ef4e92b4babe399bf471fdcd86a7b`, under AGPL-3.0-only.
-Original attribution and LICENSE are retained. This maintained derivative is published by hysres.
+Original attribution and LICENSE are retained. This maintained derivative is published by mechatlarge.
 It is not endorsed by Rion Wu, Tencent or WeChat.
 
 The October 2026 extensions add snapshot freshness, image decoding/OCR, disk-only image
@@ -26,3 +26,21 @@ requires HTTPX2, whose [upstream project is maintained by Pydantic](https://gith
 Speech model repositories are identified with immutable revisions in runtime_paths.py.
 
 No third-party proprietary WeChat binary or original historical WeChat CLI binary is included.
+
+## First-connection additions (0.11.0rc1)
+
+The access coordinator and its contract tests derive from Rion WeChat Intelligence
+Hub revision `fb6a42c34160d2ffa66ed5f114f8d8cdabe7f5f9` (AGPL-3.0-only), adapted to
+portable profiles. Account discovery, native consent and the agent-neutral guide
+are maintained here.
+
+The optional helper derives from r266-tech/wxkey revision
+`01e96fa58ce3ff061dce83e4c36f62104ebc6b16` (MIT), plus the Rion lifecycle patch and
+this project's restrictions. Full modified source is in `providers/wxkey/source`;
+the original MIT license and patch are retained. Credential-storage/elevation and
+original-app resign operations are disabled. Process stop handling is scoped to
+verified owners/executables. The bundled helper remains experimental and has no
+fresh-account compatibility claim. `access-provider.json` binds binary/source
+hashes; `scripts/build_provider.sh` reproduces the ordinary-user build.
+
+The helper statically includes Go standard-library code (BSD-style license) and purego v0.10.0 (Apache-2.0); their original license texts are retained under providers/wxkey/licenses. See source/go.mod and source/go.sum for the exact module dependency.

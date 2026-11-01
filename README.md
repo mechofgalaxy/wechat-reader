@@ -3,15 +3,28 @@
 Local, read-only access to **your own authorized** WeChat data, with text search,
 account-bound images/OCR, voice decoding and optional local speech transcription.
 This is a maintained derivative of [Rion WeChat Reader](https://github.com/Rion-Wu-tech/wechat-intelligence-hub),
-not an official Tencent product. **Version: 0.10.0rc4. License: AGPL-3.0-only.**
+not an official Tencent product. **Version: 0.11.0rc1. License: AGPL-3.0-only.**
 
-**安装成功不等于已接入微信。** 本包不提供数据库密钥获取、注入、重签名或自动发消息。
-完整读取需要你自己的兼容微信数据库及已有授权访问材料。尚无这些材料时，先运行虚构数据 Demo。
+**安装成功不等于已接入微信。** 日常读取只读。首次接入可以复用已有材料；缺少材料时，由使用者明确授权实验性本机获取。该过程可能退出/重开微信并签名独立副本，不改签原应用、不保存管理员密码、不关闭 SIP、不自动发消息。先运行虚构数据 Demo；真实读取需要单独验证。
+
+## One link for any local agent / 给 Agent 的统一入口
+
+Give [START_HERE.md](START_HERE.md) to a local Claude Code, Codex, or another agent
+with command execution on your Mac. It covers installation, account selection,
+permission prompts, verification and recovery. Structured JSON states are shared
+across agents; no particular model subscription is required by this tool.
+
+The new `connect` flow discovers local account locations and reuses existing
+materials. When materials are absent, the macOS archive includes an **experimental,
+explicitly authorized** helper. Native human confirmation comes before any process
+access or restart. Its complete modified source is included. Fresh-machine
+acquisition and cancelled-run GUI recovery are still unverified; do not promise
+one-click compatibility or confuse mocked acquisition with a real WeChat test.
 
 ## Download and install / 安装
 
-Download an archive and `SHA256SUMS` from [Releases](https://github.com/hysres/wechat-reader/releases).
-Apple Silicon Mac users should choose `wechat-reader-0.10.0rc4-macos-arm64.tar.gz`;
+Download an archive and `SHA256SUMS` from [Releases](https://github.com/mechatlarge/wechat-reader/releases).
+Apple Silicon Mac users should choose `wechat-reader-0.11.0rc1-macos-arm64.tar.gz`;
 it includes the precompiled Apple OCR helper. The source archive contains the helper's full source.
 These are command-line archives, not notarized `.app` installers.
 Use the documented terminal extraction. The installer checks native image/OCR execution;
@@ -22,9 +35,9 @@ software using macOS's normal security process, or build the helper from the inc
 
 ```sh
 # Compare the archive checksum with SHA256SUMS before extracting.
-shasum -a 256 wechat-reader-0.10.0rc4-macos-arm64.tar.gz
-tar -xzf wechat-reader-0.10.0rc4-macos-arm64.tar.gz
-cd wechat-reader-0.10.0rc4
+shasum -a 256 wechat-reader-0.11.0rc1-macos-arm64.tar.gz
+tar -xzf wechat-reader-0.11.0rc1-macos-arm64.tar.gz
+cd wechat-reader-0.11.0rc1
 ./install.sh
 # To include local voice decoding / transcription dependencies instead:
 # ./install.sh --with-voice
@@ -40,7 +53,7 @@ Use `--prefix /absolute/custom/directory` to choose another directory.
 ```sh
 ~/.local/share/wechat-reader/bin/wechat-reader runtime-status
 ~/.local/share/wechat-reader/bin/wechat-reader demo
-~/.local/share/wechat-reader/bin/wechat-reader onboard
+~/.local/share/wechat-reader/bin/wechat-reader connect --discover
 ```
 
 `onboard` asks for an account label, **that account's** `db_storage` directory and

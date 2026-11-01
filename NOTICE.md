@@ -1,6 +1,6 @@
 # Maintained derivative notice
 
-WeChat Reader 0.10.0rc4 is a maintained derivative published by hysres.
+WeChat Reader 0.11.0rc1 is a maintained derivative published by mechatlarge.
 Modifications: Copyright (C) 2026 hysres contributors.
 The complete derivative remains AGPL-3.0-only. Original upstream attribution follows.
 Upstream branding identifies provenance; this distribution is not an upstream release.
@@ -18,3 +18,5 @@ Users must access only data they own or are authorized to use and remain respons
 WeChat and related names and marks are trademarks of their respective owners.
 
 Copyright (C) 2026 Rion Wu. No license is granted to use the Rion Wu name, project branding, logos, or other trademarks except as required for reasonable attribution and identification of the original project.
+
+Optional wxkey helper: MIT, r266-tech contributors; complete modified source and original license in providers/wxkey/source. Portable onboarding modifications: Copyright (C) 2026 mechatlarge contributors.

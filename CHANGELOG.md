@@ -1,3 +1,14 @@
+# 0.11.0rc1 — Agent-neutral first-connection preview
+
+- One shareable START_HERE guide, generic AGENTS contract and optional skill.
+- Bounded account discovery, explicit profile selection, existing-material reuse,
+  safe state output, native human consent and post-attempt recovery checks.
+- Optional pinned Apple Silicon helper, full source and binary/source manifest.
+  No stored administrator credentials, original-app resign or global killall.
+- Normalized salt access bundles can be reimported, with salt mismatch rejection.
+- First acquisition on a fresh Mac and native recovery after cancellation remain
+  unverified; this remains a prerelease. Synthetic tests are not real account tests.
+
 # Changelog
 
 ## 0.10.0rc4 — 2026-11-01

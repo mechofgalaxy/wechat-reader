@@ -212,7 +212,7 @@ class ReaderContractTest(unittest.TestCase):
         payload = self.run_cli("version")
         self.assertEqual(payload["data"]["name"], "rion-wechat-cli")
         # Local patch identifier is intentional; all other upstream assertions are unchanged.
-        self.assertEqual(payload["data"]["version"], "0.10.0rc4")
+        self.assertEqual(payload["data"]["version"], "0.11.0rc1")
 
     def test_import_access_converts_explicit_bundle_without_exposing_keys(self):
         source = Path(self.temp.name) / "legacy-access.json"
