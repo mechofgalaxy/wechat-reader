@@ -21,6 +21,25 @@ access or restart. Its complete modified source is included. Fresh-machine
 acquisition and cancelled-run GUI recovery are still unverified; do not promise
 one-click compatibility or confuse mocked acquisition with a real WeChat test.
 
+## Problems? Read-only troubleshooting first / 遇到问题先只读排查
+
+If installation, connection or reading fails, the agent should follow the
+[read-only troubleshooting guide](docs/TROUBLESHOOTING.md) before proposing a repair.
+Inspect the original error and, when the installed launcher is available, run
+`runtime-status` and `connect --name EXISTING_PROFILE --status` using the actual
+previously selected profile. Do not guess a profile or rerun acquisition to collect
+an error. If installation never completed, preserve the installation error and
+report which diagnostics are unavailable.
+
+Continue these read-only checks within existing access without asking the user to
+repeat the request. Report the observed failure stage and evidence gaps. Explain
+any proposed change and obtain the specific authorization it requires before
+installing software, changing permissions, restarting WeChat or requesting access.
+Native consent and administrator dialogs remain for the human. Do not automatically
+retry acquisition or clear recovery locks; do not include private data in feedback.
+
+遇到问题时，Agent 应先沿上面的入口做只读排查；需要新增授权或人工确认时，再说明具体操作及影响，请用户确认。安装成功、接入成功和故障原因必须分别报告。
+
 ## Download and install / 安装
 
 Download an archive and `SHA256SUMS` from [Releases](https://github.com/mechofgalaxy/wechat-reader/releases).

@@ -13,6 +13,30 @@ The helper currently expects the official `/Applications/WeChat.app` installatio
 Other installations, multiple running copies, and renamed clients stop for review.
 Intel Mac, Windows, and Linux first acquisition are not supported in this release.
 
+## If anything fails: read-only diagnostics first
+
+For a failed installation, connection or query, follow
+[the troubleshooting guide](docs/TROUBLESHOOTING.md) before changing anything.
+Canonical link (also usable when an older installed archive lacks this file):
+https://github.com/mechofgalaxy/wechat-reader/blob/main/docs/TROUBLESHOOTING.md
+
+Proceed with the guide's read-only checks within existing access; do not wait for
+the user to ask again. Preserve the original error, use the installed absolute
+launcher when available, and reuse the exact profile label from the earlier
+attempt. If the launcher or label is unavailable, report that gap instead of
+inventing a profile, repeating installation or rerunning acquisition. This pass
+collects safe diagnostic fields, not chat bodies or raw acquisition logs.
+
+Report the evidence and the earliest supported failure stage before proposing a
+repair. A missing administrator dialog or a compatibility disclaimer alone does
+not establish the cause. For a proposed action that requires authorization—such
+as installing a dependency, changing permissions, restarting WeChat, process
+access, signing a separate copy or saving account configuration—explain the exact
+action and effects, then obtain any required user authorization before proceeding.
+The human handles native consent and administrator dialogs. Do not automatically
+retry acquisition, manually clear a recovery lock or bypass system protections.
+Follow the post-run recovery confirmation in step 7 when applicable.
+
 ## Instructions for the agent
 
 1. Read this page, [account access](docs/ACCOUNT-ACCESS.md), and [security](SECURITY.md).
@@ -50,10 +74,10 @@ Intel Mac, Windows, and Linux first acquisition are not supported in this releas
 | `ready_to_configure` | Explain that a private profile will be saved; repeat with `--apply`. |
 | `existing_provider_material_available` | Ask permission to reuse that local file for this account; use `--access-file PATH --apply`. Never print its contents. |
 | `authorization_required` | Explain the one-time experimental effects below, then request human authorization. |
-| `filesystem_access_required` / `dependency_required` | Fix the named local permission/dependency; a missing dependency is not a reason to reacquire keys. |
-| `partial` / `scan_incomplete` / `verification_failed` | Report the gap. Preserve the profile/materials, do not claim full access or retry acquisition automatically. |
-| `existing_configuration_requires_review` | Diagnose the existing profile; never overwrite it or silently select another account. |
-| Any unknown/error state | Stop dependent operations and report the exact safe code. Do not improvise security changes. |
+| `filesystem_access_required` / `dependency_required` | Follow [read-only troubleshooting](docs/TROUBLESHOOTING.md), identify the named permission/dependency, then explain the fix and obtain any required user authorization before making changes. Do not reacquire keys. |
+| `partial` / `scan_incomplete` / `verification_failed` | Follow [read-only troubleshooting](docs/TROUBLESHOOTING.md) and report the gap. Preserve the profile/materials; do not claim full access or retry acquisition automatically. |
+| `existing_configuration_requires_review` | Follow [read-only troubleshooting](docs/TROUBLESHOOTING.md) for the existing profile; never overwrite it or silently select another account. |
+| Any unknown/error state | Stop dependent operations, follow [read-only troubleshooting](docs/TROUBLESHOOTING.md), and report the exact safe code. Do not improvise security changes. |
 
 6. If access materials are missing, this package supplies a fixed, modified helper.
    Explain to the user that it may quit/reopen WeChat, sign a **separate local copy**,
@@ -65,8 +89,10 @@ Intel Mac, Windows, and Linux first acquisition are not supported in this releas
    ```
 
    If `debugger_unavailable` is reported, explain that Apple Command Line Tools are
-   required for the optional acquisition step. Have the person complete the official
-   `xcode-select --install` flow, then recheck; do not fetch a debugger from a mirror.
+   required for the optional acquisition step. Follow the read-only troubleshooting
+   guide first. Explain the dependency installation and obtain user authorization
+   before starting the official `xcode-select --install` flow. The person completes
+   its dialogs; then recheck. Do not fetch a debugger from a mirror.
 
    The person must handle the native consent and macOS administrator dialogs.
    **Never click through these for the user, collect their password, paste a password
@@ -106,8 +132,10 @@ coverage, WeChat recovery confirmed, and one user-scoped query verified. Report 
 missing stage honestly. A successful Demo is never proof of real account access.
 Do not send WeChat messages, enable background jobs, or add agent permissions.
 
-For problems, `connect --name personal --status` produces a limited support summary.
-Do not upload keys, database files, raw acquisition logs, or private message samples.
+For problems, follow [read-only troubleshooting](docs/TROUBLESHOOTING.md).
+`connect --name ACTUAL_PROFILE --status` produces a limited support summary; replace
+`ACTUAL_PROFILE` with the previously selected label. Do not upload keys, database
+files, raw acquisition logs, or private message samples.
 
 For a first trial, report the release version, macOS/WeChat versions, the stage
 reached (installed / selected account / authorized / readable / recovery confirmed),
