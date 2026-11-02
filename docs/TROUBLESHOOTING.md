@@ -43,9 +43,14 @@ leave it to the person and report that the check is blocked pending their decisi
 
 ### 1. Identify the exact local execution context
 
-Reuse the same local agent/terminal context as the failed command. Recover the
-installed launcher and selected `db_storage` directory from this task's existing
-conversation or execution history where available. Do not search unrelated agent
+Prefer the same local agent/terminal context as the failed command. If the user
+has switched to another agent, such as Codex, **continue with the existing local
+installation**; do not reinstall or retry acquisition just to recreate history.
+Record the current host app and the original app if known. Access previously
+granted to one app does not establish another app's access. Treat the probe as a
+check of the current context and leave any required permission decision to the user.
+Recover the installed launcher and selected `db_storage` directory from this
+task's supplied diagnostic report, conversation or execution history where available. Do not search unrelated agent
 sessions, shell history, the entire home directory, credentials or configuration
 contents. If selections are missing, use the bounded recovery steps below.
 
