@@ -31,6 +31,136 @@ https://github.com/mechofgalaxy/wechat-reader/blob/c018f5d0403d3b3daad593cc72bea
 5. Separately confirm whether the **“Connect my account” consent dialog** appeared and whether an **administrator authorization dialog** appeared.
 
 
+## Native consent and AppleScript errors
+
+If `connect` returns `user_cancelled_no_acquisition`, do not infer that the person
+pressed Cancel. In reviewed rc1, `request_user_consent` maps **every nonzero exit**
+from its `osascript` command to that code and discards the subprocess error text.
+The outer CLI's empty stderr therefore does not prove the dialog command had no
+error. This branch occurs before administrator authorization and acquisition.
+
+Ask whether the Reader window actually appeared and which button, if any, the
+person selected. If a separately authorized dialog-only test reports an
+AppleScript compile error such as `-2740`, stop repeating dialog tests or the
+connection attempt in the same unchanged context. A syntax error alone does not
+establish whether the problem is source text or unavailable scripting terminology.
+[Apple documents these error numbers](https://developer.apple.com/library/archive/documentation/AppleScript/Conceptual/AppleScriptLangGuide/reference/ASLR_error_codes.html)
+and the [loading of scripting-addition terminology](https://developer.apple.com/library/archive/documentation/LanguagesUtilities/Conceptual/MacAutomationScriptingGuide/AppendixA-AppleScriptObjCQuickTranslationGuide.html).
+
+### Check actual execution policy before another test
+
+Inspect only the relevant effective permission/approval fields exposed by the
+current client; do not dump configuration files, credentials or environment
+variables. Report unknown fields as unknown. If native command escalation is
+reported disabled, a chat reply saying “yes” does **not** change that runtime
+policy. File-read approval also does not establish approval for a command that
+needs different sandbox access. Do not promise an Approve button that the current
+policy cannot present.
+
+Where the user controls the setting, explain the smallest supported change that
+would permit a reviewable, one-time command request, and obtain confirmation
+before changing it. Codex documents interactive `on-request` approval and a `user`
+reviewer while retaining a sandbox; these are examples, not permission to rewrite
+this installation's configuration. Managed restrictions remain binding. Do not
+switch applications, inject another execution route, enable global Full Access,
+add a blanket command rule, or keep retrying to evade a denial.
+[Official Codex sandbox and approval settings](https://learn.chatgpt.com/docs/sandboxing#configure-defaults).
+
+### Compile-only comparison, after any required approval
+
+Maintainer evidence on macOS **26.6.2**, not a verification of the user's host:
+with identical source bytes, compiler arguments and Reader's minimal HOME/PATH
+environment, `return 1` compiled in both contexts. A minimal `display dialog` and
+the exact rc1 consent script with a fictional account path failed with `-2740` in
+the restricted context and compiled successfully in an approved execution context.
+Adding `use scripting additions` alone did not fix the restricted-context check.
+No compiled script was executed, no dialog appeared and WeChat was not accessed.
+This establishes an execution-context effect on that Mac; the exact blocked
+resource and the user's historical failure remain unproven.
+
+To compare on the user's Mac, prepare the following concrete action for native
+approval **only where the effective policy allows it**. It compiles two fixed,
+non-personal scripts into a private temporary directory and removes the artifacts.
+It does not execute the scripts, show a dialog, request an administrator password,
+inspect an account, or retry connection. Temporary artifact writes are disclosed;
+this is a compile-only check, not a database-read probe.
+
+Use the already verified installed `WR_RELEASE`. If an approved comparison is
+allowed, use this exact same probe and verify the returned script hashes match
+across contexts. Record the actual tool approval/context separately; the Python
+script cannot prove how the host authorized its execution. Do not claim a
+comparison if only one context was tested.
+
+```sh
+"$WR_RELEASE/runtime/bin/python" -B -E -s - <<'PY'
+import hashlib
+import json
+import os
+from pathlib import Path
+import re
+import subprocess
+import tempfile
+
+
+def main():
+    report = {'probe': 'applescript_compile_only', 'scripts_executed': False,
+              'dialog_shown_by_probe': False, 'wechat_accessed': False, 'results': []}
+    if os.geteuid() == 0:
+        report['state'] = 'normal_user_required'
+    else:
+        cases = {
+            'plain_core': 'return 1',
+            'standard_dialog': 'display dialog "Diagnostic only" buttons {"OK"}',
+        }
+        try:
+            with tempfile.TemporaryDirectory(prefix='wechat-osa-compile-') as tmp:
+                folder = Path(tmp)
+                for name, source in cases.items():
+                    source_file = folder / (name + '.applescript')
+                    source_file.write_text(source, encoding='utf-8')
+                    row = {'case': name, 'script_sha256': hashlib.sha256(source.encode()).hexdigest()}
+                    try:
+                        result = subprocess.run(
+                            ['/usr/bin/osacompile', '-l', 'AppleScript', '-o',
+                             str(folder / (name + '.scpt')), str(source_file)],
+                            stdin=subprocess.DEVNULL, capture_output=True, text=True,
+                            timeout=15, env={'HOME': str(Path.home()),
+                                            'PATH': '/usr/bin:/bin:/usr/sbin:/sbin'})
+                        row.update(process_exit_code=result.returncode,
+                                   applescript_error_numbers=[int(n) for n in re.findall(r'\((-\d+)\)', result.stderr)[-5:]])
+                    except subprocess.TimeoutExpired:
+                        row['state'] = 'compiler_timeout'
+                    except OSError as exc:
+                        row.update(state='compiler_launch_error', errno=exc.errno)
+                    report['results'].append(row)
+            report['state'] = 'compile_checks_complete'
+            report['temporary_files_removed'] = True
+        except OSError as exc:
+            report.update(state='temporary_artifact_error', errno=exc.errno)
+    print(json.dumps(report, indent=2))
+
+
+if __name__ == '__main__':
+    os.umask(0o077)
+    main()
+PY
+```
+
+| Result | Meaning / next action |
+| --- | --- |
+| Core compiles, dialog fails only in restricted context; same hashes compile after an allowed approval | Execution context affects scripting-addition command compilation on this host. It does not yet prove GUI display or administrator/process access. |
+| Both cases fail | Check compiler availability and the returned errors; do not call this a WeChat compatibility result. |
+| Dialog fails in both contexts | Keep source/compiler/addition-loading causes open. Preserve exact source hashes and safe error numbers; do not keep editing syntax blindly. |
+| Only one context can be tested because policy prohibits another | Report `approved_comparison_unavailable`; stop dependent tests. A chat confirmation is not a substitute for a permitted native execution path. |
+| Both cases compile | Syntax/terminology compilation passed in the tested context. A fresh, separately authorized dialog-only test is needed to establish whether the user sees a window. |
+
+A later dialog test must be clearly labelled as diagnostic, with no acquisition
+and a bounded timeout. An OK click on that diagnostic does not authorize account
+connection. A subsequent connection attempt still needs its own confirmation and
+the person's native Reader/macOS dialogs. Do not execute a compiled test artifact
+or auto-clear a recovery lock to advance this sequence. Preserve the existing
+installation, account selection and profile label while this issue is unresolved.
+
 ## Next pass for `database_read_permission_denied`
 
 Use this section when the first pass reports `database_read_permission_denied`
