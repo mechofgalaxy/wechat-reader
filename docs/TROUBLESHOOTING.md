@@ -25,7 +25,7 @@ https://github.com/mechofgalaxy/wechat-reader/blob/c018f5d0403d3b3daad593cc72bea
    "$HOME/.local/share/wechat-reader/bin/wechat-reader" connect --name PROFILE_NAME --status
    ```
 
-   Replace `PROFILE_NAME` with the exact label used previously, not the WeChat account ID. If the launcher was installed elsewhere, use its previously verified absolute path. If the previous profile label cannot be recovered, report that gap rather than guessing or creating a new profile.
+   Replace `PROFILE_NAME` with the exact label used previously, not the WeChat account ID. If the launcher was installed elsewhere, use its previously verified absolute path. If the previous profile label cannot be recovered, skip this named status command and report `profile_label_unknown`. Do not invent a label or create a profile. The filesystem probe below does not need a profile label; see the missing-selection recovery steps.
 3. Report `last_attempt_state` and `last_attempt_diagnostics`, including any `phase`, `provider_started`, `exit_code`, and `signals`. If a field is absent, report it as unavailable.
 4. Include the Mac architecture, macOS version, and WeChat version/build.
 5. Separately confirm whether the **“Connect my account” consent dialog** appeared and whether an **administrator authorization dialog** appeared.
@@ -43,10 +43,17 @@ leave it to the person and report that the check is blocked pending their decisi
 
 ### 1. Identify the exact local execution context
 
-Reuse the same local agent/terminal context as the failed command. Confirm the
-installed launcher, profile label and selected `db_storage` directory from the
-previous commands. Do not discover another account or search the home directory.
-If any input is missing, ask only for that missing selection.
+Reuse the same local agent/terminal context as the failed command. Recover the
+installed launcher and selected `db_storage` directory from this task's existing
+conversation or execution history where available. Do not search unrelated agent
+sessions, shell history, the entire home directory, credentials or configuration
+contents. If selections are missing, use the bounded recovery steps below.
+
+A profile label is needed only for the named `connect --status` command. The
+filesystem probe in step 2 needs the installed release and a confirmed database
+directory, **not a profile label**. A failed first connection may never have saved
+a profile or its label. Keep an unrecoverable label as `profile_label_unknown`;
+do not create a new label, try example names or copy someone else's selections.
 
 Read the managed launcher locally to identify its release directory and Python:
 
@@ -63,10 +70,52 @@ Record the host app's name and whether it was relaunched after any prior Full Di
 Access change, without changing its settings. A normal-user read does not verify
 the access of an administrator worker launched through a different context.
 
+#### If the previous database folder is unavailable
+
+Within the user's existing local-read authorization, use rc1's built-in directory
+discovery. Set `WR_RELEASE` from the managed launcher as above, using the same
+installed release whose source hashes were verified. This invokes the same
+`--discover` branch used by `wechat-reader connect --discover`; `-B` prevents
+bytecode writes. It does not require a profile or run the image-helper self-test.
+
+```sh
+WR_RELEASE='/absolute/release/directory/from/the/managed/launcher'
+"$WR_RELEASE/runtime/bin/python" -B -E -s "$WR_RELEASE/lib/first_run.py" --discover
+```
+
+Discovery checks only rc1's three fixed WeChat locations under the current user's
+home, with bounded depth and at most 200 visited directories per location. It
+lists candidate `db_storage` directories; it does not read database contents,
+read keys, create a profile, restart WeChat or start acquisition. Candidate paths
+and account folder names are **local selection information**: do not include them
+in a forwarded report. Do not automatically approve a native access dialog.
+
+- An `ok: true` response with `data.state: account_selection_required` is a
+  successful candidate listing. rc1 still exits with code **1** in this state;
+  inspect the JSON instead of treating that exit code as an acquisition failure.
+- Have the user confirm which candidate belongs to their own intended account
+  before running the database probe, even if there is only one candidate. Do not
+  silently select the first directory or scan every candidate's databases.
+- Use that confirmed path as `WR_DB_ROOT` in step 2. If the original selection
+  cannot be established, describe the result as a **new current-context check**
+  of the newly confirmed selection, not a reproduction of the failed attempt.
+- If there are no candidates, warnings, or a denied read, report the exact safe
+  state/warning. Ask the user to identify their own data directory locally, or
+  explain the specific permission needed and wait for their decision. Do not
+  broaden the search, open/log into WeChat, change permissions or retry acquisition
+  merely because discovery's generic `next_action` suggests a setup action.
+
+A path in a report such as `/Users/.../redacted-diagnostics.json` is a local file
+on the reporting machine, not a shareable download link. The local Agent can read
+that exact report within its existing authorization. To share it with the
+maintainer, provide only the redacted JSON text or attach the redacted file; never
+substitute raw receipts, configurations, account paths or keys.
+
 ### 2. Run only the installed rc1 filesystem preflight
 
-Replace the two placeholders below using the already selected local values.
-Do not execute the placeholders literally. This command uses the installed Python,
+Replace the two placeholders below using the recovered or user-confirmed local
+values. No profile label is needed for this probe. Do not execute the placeholders
+literally. This command uses the installed Python,
 checks the exact rc1 source hashes, then loads **only** the error class, path check
 and database-preflight function. It does not import the application or load its
 worker, debugger, acquisition, consent or recovery functions. `-B` prevents Python
@@ -290,7 +339,13 @@ older receipts must not be described as records of the latest attempt.
 | No corresponding worker receipt, or uncertain timing | Keep `last_attempt` historical/unconfirmed. The normal-user database and debugger checks occur before the consent dialog in rc1. |
 
 Return the probe JSON, receipt metadata, host-app name, prior relaunch status,
-original error code and whether the receipt timing matches. Do not return personal
+original error code and whether the receipt timing matches. If a selection was
+newly confirmed, state that; if the profile label is unknown, preserve that gap.
+An image-helper failure is a separate runtime finding, not evidence of the cause
+of a database-preflight failure. Its repair is not a prerequisite for this
+filesystem probe; record the safe helper status and avoid reinstalling or
+changing security settings to investigate it during this pass.
+Do not return personal
 paths, account IDs, header bytes, keys, raw logs or full process command lines.
 The `chat_content_read: false` field means no message bodies were queried; 16-byte
 file headers were read locally. Empty `signals` and a missing `exit_code` are
