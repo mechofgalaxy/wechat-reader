@@ -38,7 +38,8 @@ with `database_preflight` or when no consent/administrator dialog appeared.
 These are **read-only diagnostics, not another acquisition attempt**. Do not add
 `--request-access`, `--apply`, `--finish-recovery`, `sudo`, `--verbose` or `--trace`;
 rc1's `connect` has no verbose/trace flags. Do not reinstall or change permissions
-to make these checks pass. If a native permission dialog appears during a read,
+automatically. For a blocked directory listing, follow **Discovery access approval**
+below and obtain the required approval before continuing. If a native permission dialog appears during a read,
 leave it to the person and report that the check is blocked pending their decision.
 
 ### 1. Identify the exact local execution context
@@ -104,17 +105,170 @@ in a forwarded report. Do not automatically approve a native access dialog.
 - Use that confirmed path as `WR_DB_ROOT` in step 2. If the original selection
   cannot be established, describe the result as a **new current-context check**
   of the newly confirmed selection, not a reproduction of the failed attempt.
-- If there are no candidates, warnings, or a denied read, report the exact safe
-  state/warning. Ask the user to identify their own data directory locally, or
-  explain the specific permission needed and wait for their decision. Do not
-  broaden the search, open/log into WeChat, change permissions or retry acquisition
-  merely because discovery's generic `next_action` suggests a setup action.
+- If discovery returns `filesystem_access_required`, follow **Discovery access
+  approval** below. Prepare a concrete, scoped native approval request instead of
+  asking the user to find a path or edit a selection JSON file first. A generic
+  warning is not proof that Full Disk Access is required.
+- If discovery completes without warnings and finds no candidates, offer the
+  client's local folder picker if available; otherwise ask only for the user's
+  own data location. Do not broaden the search, open/log into WeChat or retry
+  acquisition merely because discovery's generic `next_action` suggests setup.
 
 A path in a report such as `/Users/.../redacted-diagnostics.json` is a local file
 on the reporting machine, not a shareable download link. The local Agent can read
 that exact report within its existing authorization. To share it with the
 maintainer, provide only the redacted JSON text or attach the redacted file; never
 substitute raw receipts, configurations, account paths or keys.
+
+### Discovery access approval
+
+Prefer an agent-prepared action that the user can **Approve**, followed by
+automatic continuation. Do not make manual path entry, JSON editing or finding
+old commands the default way around a blocked discovery check.
+
+First record the current execution host and verify its OS facts with:
+
+```sh
+/usr/bin/sw_vers -productVersion
+/usr/bin/sw_vers -buildVersion
+/usr/bin/uname -m
+```
+
+If these differ from an earlier handoff, preserve both observations and ask
+whether the user changed Macs or upgraded if that distinction matters. Do not
+claim that an old receipt or previous app's permissions describe the current
+host. Do not collect a hostname, serial number or full environment dump.
+
+`filesystem_access_required` is a broad rc1 warning: discovery folds both
+`OSError` and path-validation errors into it. It has no underlying operation or
+`errno`, and zero candidates does not establish that no database folders exist.
+
+1. Prepare the exact already-verified discovery command from the previous
+   section and request access through the client's **native permission or command
+   approval mechanism**, when its current policy permits it. Prefer a one-time
+   or turn-scoped **read** grant for the three fixed roots listed in `first_run.py`;
+   no whole-home grant, write grant, network grant or permanent command-prefix
+   rule. If the client exposes only a per-command approval, use it for that exact
+   bounded listing and explain its scope. Do not use `sudo` or change the OS user.
+2. Use a plain explanation such as: “Allow a one-time read-only listing of
+   WeChat's standard data directories so I can find your account folder? This
+   does not read chats or keys, write files, restart WeChat or acquire keys.”
+   Request approval for the real prepared tool action, not just an unrelated
+   chat question. Never press Approve or answer an authorization dialog for the
+   user. A native approval's availability and handling depend on the installed
+   client and policy; do not claim a human approved if no human decision occurred.
+3. After the requested approval is granted, run that discovery once and inspect
+   its JSON. Present the candidates locally with a simple account selection or
+   confirmation. A sole candidate can be preselected for confirmation; never
+   silently choose it. Keep the selected path local and pass it directly to step
+   2 after confirmation; the user need not type the path or edit a JSON file.
+4. If approval is denied, unavailable, or blocked by managed policy, report the
+   exact barrier and stop the dependent action. Do not switch applications, use
+   a different tool to evade the restriction, or disable sandbox protections.
+   If macOS presents its own access dialog, leave it to the user. A client grant
+   does not itself change macOS privacy settings. Explain any actual OS setting
+   change separately and obtain confirmation; do not prescribe Full Disk Access
+   solely from this warning. Reopening the controlling agent, if required for an
+   approved setting, is a separate action from restarting WeChat.
+5. If the approved discovery still fails, use the metadata check below within
+   the granted scope and return its safe results. Do not loop approvals or
+   acquisition attempts. Account confirmation and any later process access,
+   WeChat restart or key acquisition remain separate from directory-list access.
+
+Codex's native command and filesystem approval capabilities are described in
+[OpenAI's approval documentation](https://learn.chatgpt.com/docs/app-server#approvals).
+macOS app access to protected folders is controlled separately through
+[Apple's file-access settings](https://support.apple.com/guide/mac-help/control-access-to-files-and-folders-on-mac-mchld5a35146/mac).
+These references describe available mechanisms, not proof that a particular
+permission or dialog is enabled on this user's machine.
+
+#### If an approved listing still fails
+
+This optional check opens only the same three fixed root directories read-only,
+without following symbolic links, and samples one directory entry without
+printing its name. It reads **no database headers or contents**, creates no
+selection file and invokes no helper. Run it with the previously verified
+`WR_RELEASE`, as the normal user, using only the read scope already approved.
+
+```sh
+"$WR_RELEASE/runtime/bin/python" -B -E -s - <<'PY'
+import errno
+import json
+import os
+from pathlib import Path
+import signal
+
+
+def inspect_root(path, label):
+    result = {'location': label}
+    operation = 'open_directory'
+    fd = None
+    flags = os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW
+    try:
+        # Walk only the explicit path components; do not follow symbolic links.
+        fd = os.open(path.anchor, flags)
+        for part in path.parts[1:]:
+            child = os.open(part, flags, dir_fd=fd)
+            os.close(fd)
+            fd = child
+        operation = 'list_directory'
+        with os.scandir(fd) as entries:
+            next(entries, None)  # Discard the name; no file content is opened.
+        result['state'] = 'root_listing_available'
+    except OSError as exc:
+        result.update(state='root_unavailable', failed_operation=operation,
+                      errno=exc.errno, errno_name=errno.errorcode.get(exc.errno, 'UNKNOWN'))
+    finally:
+        if fd is not None:
+            os.close(fd)
+    return result
+
+
+class DiagnosticTimeout(Exception):
+    pass
+
+
+def timeout(*args):
+    raise DiagnosticTimeout('diagnostic_deadline')
+
+
+def main():
+    report = {'probe': 'fixed_root_metadata_only', 'database_probe_run': False,
+              'provider_started': False, 'configuration_changed': False, 'roots': []}
+    if os.geteuid() == 0:
+        report['state'] = 'normal_user_required'
+    else:
+        signal.signal(signal.SIGALRM, timeout)
+        signal.alarm(30)
+        try:
+            home = Path.home()
+            roots = [
+                ('container_documents', home/'Library/Containers/com.tencent.xinWeChat/Data/Documents/xwechat_files'),
+                ('documents', home/'Documents/xwechat_files'),
+                ('container_support', home/'Library/Containers/com.tencent.xinWeChat/Data/Library/Application Support/com.tencent.xinWeChat'),
+            ]
+            for label, path in roots:
+                report['roots'].append(inspect_root(path, label))
+            report['state'] = 'metadata_checked'
+        except DiagnosticTimeout:
+            report['state'] = 'diagnostic_timeout'
+        finally:
+            signal.alarm(0)
+    print(json.dumps(report, indent=2))
+
+
+if __name__ == '__main__':
+    main()
+PY
+```
+
+Report `location`, `failed_operation`, `errno` and `errno_name`. `ENOENT` can
+mean a root or ancestor is missing; `ENOTDIR`/`ELOOP` can mean a non-directory or
+rejected symbolic link. `EACCES`/`EPERM` indicates a denied operation but does not
+by itself distinguish an agent sandbox, filesystem permissions or macOS privacy.
+This check covers only the fixed roots: `root_listing_available` does not rule
+out a deeper discovery error, find an account, or establish database access.
+Do not widen the scan to resolve that remaining gap automatically.
 
 ### 2. Run only the installed rc1 filesystem preflight
 
